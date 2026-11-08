@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Security Access</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #7B1FA2; 
+            --bg: #F8F5F9;
+            --white: #FFFFFF;
+            --text: #4A148C;
+            --btn-soft-bg: #F3E5F5; 
+            --btn-soft-text: #7B1FA2;
+            --error: #d32f2f;
+            --border-color: rgba(123, 31, 162, 0.25);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body {
+            background-color: var(--bg);
+            font-family: 'Poppins', sans-serif;
+            margin: 0; padding: 20px;
+            color: var(--text);
+            display: flex; flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            justify-content: center;
+        }
+
+        /* --- WRAPPER STYLE (Dùng chung cho cả Login và Main) --- */
+        .app-card-wrapper {
+            background: var(--white);
+            border: 1px solid var(--border-color); /* Viền mỏng */
+            border-radius: 30px;
+            padding: 30px 20px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 10px 30px rgba(123, 31, 162, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- LOGIN KEYPAD STYLES --- */
+        #login-view {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0 30px 0;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: #E1BEE7;
+            transition: all 0.2s;
+        }
+        .dot.active { background: var(--primary); transform: scale(1.2); }
+        .dot.error { background: var(--error); }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px 25px;
+            width: 100%;
+            justify-items: center;
+        }
+
+        .key {
+            width: 65px; height: 65px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: none;
+            color: var(--text);
+            font-size: 22px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.1s, transform 0.1s;
+        }
+        .key:active { background: #E1BEE7; transform: scale(0.95); }
+        
+        /* Style riêng cho nút chức năng (Clear, Backspace) */
+        .key.action-btn { 
+            font-size: 16px; 
+            color: #777; 
+            background: transparent; 
+            font-weight: 500;
+        }
+        .key.action-btn.clear { color: var(--error); font-weight: 700; }
+
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* --- MAIN APP STYLES --- */
+        #main-view {
+            display: none;
+            width: 100%;
+            justify-content: center;
+        }
+
+        h1 { text-align: center; color: var(--primary); font-size: 22px; margin: 0 0 5px 0; letter-spacing: 0.5px; text-transform: uppercase; }
+        .subtitle { text-align: center; color: #999; font-size: 12px; margin-bottom: 0; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+        
+        /* Điều chỉnh code-card để nằm gọn đẹp trong wrapper */
+        .code-card-inner {
+            background: #F8F5F9; /* Màu nền nhẹ phân biệt */
+            border-radius: 20px;
+            padding: 25px 15px; 
+            text-align: center;
+            margin: 25px 0;
+            width: 100%;
+            border: 1px solid rgba(123, 31, 162, 0.05);
+        }
+
+        .code-display {
+            font-size: 60px; /* Giảm nhẹ font để vừa khung hơn */
+            font-weight: 700; 
+            color: var(--primary);
+            letter-spacing: 4px; 
+            line-height: 1; 
+            margin: 15px 0 20px 0; 
+            display: block;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .code-label { font-size: 11px; text-transform: uppercase; color: #aaa; font-weight: 600; letter-spacing: 1.5px; }
+        .time-info { font-size: 12px; color: #888; margin-top: 15px; font-weight: 500;}
+
+        .btn-copy-inline {
+            background-color: var(--white);
+            color: var(--btn-soft-text);
+            border: 1px solid rgba(123, 31, 162, 0.1);
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+        .btn-copy-inline:active { transform: scale(0.96); background-color: #E1BEE7; }
+        .btn-copy-inline svg { width: 14px; height: 14px; fill: var(--btn-soft-text); }
+
+        .grid-wrapper { width: 100%; }
+        .grid-title { font-size: 11px; font-weight: 700; color: #aaa; margin-bottom: 12px; margin-left: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .time-btn {
+            background: var(--bg); border: 1px solid transparent;
+            border-radius: 14px; padding: 12px 0;
+            text-align: center; font-weight: 500; color: #666;
+            cursor: pointer; 
+            transition: all 0.2s; font-size: 13px;
+        }
+        .time-btn.active {
+            border-color: var(--primary); background: #F3E5F5; color: var(--primary);
+            font-weight: 700; box-shadow: 0 2px 8px rgba(123, 31, 162, 0.1); transform: translateY(-1px);
+        }
+
+        #js-warning { display: none; background: #ffebee; color: #c62828; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; width: 100%; max-width: 380px; border: 1px solid #ef9a9a; font-size: 12px;}
+        .toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #333; color: #fff; padding: 12px 24px; border-radius: 50px; font-size: 13px; font-weight: 500; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div id="login-view">
+        <div class="app-card-wrapper" id="loginWrapper">
+            <h1>SECURITY</h1>
+            <div class="subtitle">Enter Passcode</div>
+            
+            <div class="pin-dots">
+                <div class="dot" id="dot1"></div>
+                <div class="dot" id="dot2"></div>
+                <div class="dot" id="dot3"></div>
+                <div class="dot" id="dot4"></div>
+            </div>
+
+            <div class="keypad">
+                <button class="key" onclick="pressKey(7)">7</button>
+                <button class="key" onclick="pressKey(8)">8</button>
+                <button class="key" onclick="pressKey(9)">9</button>
+                
+                <button class="key" onclick="pressKey(4)">4</button>
+                <button class="key" onclick="pressKey(5)">5</button>
+                <button class="key" onclick="pressKey(6)">6</button>
+                
+                <button class="key" onclick="pressKey(1)">1</button>
+                <button class="key" onclick="pressKey(2)">2</button>
+                <button class="key" onclick="pressKey(3)">3</button>
+                
+                <button class="key action-btn clear" onclick="clearInput()">C</button>
+                <button class="key" onclick="pressKey(0)">0</button>
+                <button class="key action-btn" onclick="backspace()">⌫</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-view">
+        <div class="app-card-wrapper">
+            <div id="js-warning">
+                ⚠️ <b>Display Error:</b><br>
+                Please open in <b>Safari</b> or <b>Chrome</b>.
+            </div>
+
+            <h1>ACCESS CONTROL</h1>
+            <div class="subtitle">Secure Authentication System</div>
+
+            <div class="code-card-inner">
+                <div class="code-label">Passcode</div>
+                <span id="codeDisplay" class="code-display">----</span>
+                
+                <button class="btn-copy-inline" onclick="copySafe()">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/></svg>
+                    COPY KEY
+                </button>
+
+                <div class="time-info" id="timeInfo">Calculating...</div>
+            </div>
+
+            <div class="grid-wrapper">
+                <div class="grid-title">Session Duration</div>
+                <div class="grid-container" id="timeGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">
+        <svg style="width:18px;height:18px;fill:#4CAF50" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Copied to clipboard
+    </div>
+
+    <script>
+        // --- PASSWORD LOGIC ---
+        const CORRECT_PASS = "4520"; 
+        let currentInput = "";
+        let isLocked = false;
+
+        function pressKey(num) {
+            if (isLocked || currentInput.length >= 4) return;
+            
+            currentInput += num;
+            updateDots();
+
+            if (currentInput.length === 4) {
+                isLocked = true;
+                setTimeout(checkLogin, 200); 
+            }
+        }
+
+        function backspace() {
+            if (isLocked || currentInput.length === 0) return;
+            currentInput = currentInput.slice(0, -1);
+            updateDots();
+        }
+
+        // Hàm xóa toàn bộ (Clear)
+        function clearInput() {
+            if (isLocked) return;
+            currentInput = "";
+            updateDots();
+        }
+
+        function updateDots() {
+            for (let i = 1; i <= 4; i++) {
+                const dot = document.getElementById(`dot${i}`);
+                if (i <= currentInput.length) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active', 'error');
+                }
+            }
+        }
+
+        function checkLogin() {
+            const wrapper = document.getElementById('loginWrapper');
+            
+            if (currentInput === CORRECT_PASS) {
+                // Success
+                document.getElementById("login-view").style.display = "none";
+                document.getElementById("main-view").style.display = "flex";
+                initApp();
+            } else {
+                // Error
+                navigator.vibrate([100, 50, 100]);
+                wrapper.classList.add('shake');
+                
+                for (let i = 1; i <= 4; i++) {
+                    document.getElementById(`dot${i}`).classList.add('error');
+                }
+
+                setTimeout(() => {
+                    wrapper.classList.remove('shake');
+                    currentInput = "";
+                    updateDots();
+                    isLocked = false;
+                }, 500);
+            }
+        }
+
+        // --- APP LOGIC ---
+        function initApp() {
+            setTimeout(function() {
+                if (document.getElementById('timeGrid').innerHTML === "") {
+                    document.getElementById('js-warning').style.display = 'block';
+                }
+            }, 500);
+
+            const SALT = 111;
+            const durations = [30, 45, 60, 90, 120, 180, 240, 300, 360, 480, 600];
+            let selectedDuration = 45;
+
+            const grid = document.getElementById('timeGrid');
+            grid.innerHTML = ""; 
+            
+            durations.forEach(min => {
+                const btn = document.createElement('div');
+                btn.className = 'time-btn' + (min === 45 ? ' active' : '');
+                btn.innerText = min < 60 ? `${min}m` : `${min/60}h`; 
+                btn.addEventListener('click', function() { selectDuration(min, btn); });
+                grid.appendChild(btn);
+            });
+
+            window.selectDuration = function(min, btnElement) {
+                selectedDuration = min;
+                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                btnElement.classList.add('active');
+                generateCode();
+            }
+
+            window.generateCode = function() {
+                const now = new Date();
+                const day = now.getDate();
+                const hour = now.getHours();
+                
+                let calc = ((day + hour) * selectedDuration + SALT) * 19 + day + hour;
+                
+                let code = calc % 10000;
+                let codeStr = code.toString().padStart(4, '0');
+
+                document.getElementById("codeDisplay").innerText = codeStr;
+                document.getElementById("timeInfo").innerText = 
+                    `Validity: ${selectedDuration} minutes`;
+            }
+            
+            generateCode();
+            setInterval(generateCode, 60000);
+        }
+
+        function copySafe() {
+            const code = document.getElementById("codeDisplay").innerText;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(code).then(showToast).catch(() => fallbackCopy(code));
+            } else {
+                fallbackCopy(code);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try { document.execCommand('copy'); showToast(); } catch (err) {}
+            document.body.removeChild(textArea);
+        }
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2000);
+        }
+    </script>
+</body>
+</html>
